@@ -37,6 +37,15 @@ Build a Spring Boot service where external tenants register webhook URLs to rece
 - A thin client to invoke /payment api to store events
 - A tenant webhook to receive events and send response randomly = {success, failure}
 
+## Business Logic:
+
+- once event is received, then it will be saved in db, then find the merchant and invoke its webhook and record the delivery
+- handling scenarios:
+    - if webhook fails then retry for the given retries_no for the merchant
+    - add event_delivey for every delivery attempt
+    - stop retrying on success delivery
+    - after last failed retry, stop retrying and store the delivery as failed one
+
 
 ## Verification Scenarios:
 

@@ -1,5 +1,6 @@
 package com.eventdelivery.controller;
 
+import com.eventdelivery.domain.ResponseStatus;
 import com.eventdelivery.dto.PaymentEventRequest;
 import com.eventdelivery.dto.PaymentEventResponse;
 import com.eventdelivery.service.EventService;
@@ -25,6 +26,9 @@ public class PaymentController {
     public ResponseEntity<PaymentEventResponse> receivePayment(
             @Valid @RequestBody PaymentEventRequest request) {
         PaymentEventResponse response = eventService.receivePaymentEvent(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        HttpStatus status = response.getStatus() == ResponseStatus.SUCCESS
+                ? HttpStatus.CREATED
+                : HttpStatus.UNPROCESSABLE_ENTITY;
+        return ResponseEntity.status(status).body(response);
     }
 }
