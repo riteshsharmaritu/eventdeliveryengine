@@ -14,11 +14,15 @@ import com.eventdelivery.repository.EventRepository;
 import com.eventdelivery.repository.TenantRepository;
 import java.time.Instant;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class EventService {
+
+    private static final Logger log = LoggerFactory.getLogger(EventService.class);
 
     private final EventRepository eventRepository;
     private final TenantRepository tenantRepository;
@@ -41,6 +45,8 @@ public class EventService {
         Instant now = Instant.now();
 
         if (eventRepository.existsByPaymentId(request.getPaymentId())) {
+            log.info("Duplicate payment_id={} — skipping delivery (idempotent)",
+                    request.getPaymentId());
             return new PaymentEventResponse(ResponseStatus.SUCCESS, now);
         }
 
@@ -52,15 +58,25 @@ public class EventService {
         event.setMerchant(request.getMerchant());
         event.setEventType(request.getEventType());
         Event savedEvent = eventRepository.save(event);
+        log.info("Event saved event_id={} payment_id={} merchant={}",
+                savedEvent.getEventId(), savedEvent.getPaymentId(), savedEvent.getMerchant());
 
         Optional<Tenant> tenantOpt = tenantRepository.findByMerchant(request.getMerchant());
         if (tenantOpt.isEmpty()) {
+            log.warn("No tenant found for merchant={} payment_id={}",
+                    request.getMerchant(), request.getPaymentId());
             return new PaymentEventResponse(ResponseStatus.FAILURE, Instant.now());
         }
 
         Tenant tenant = tenantOpt.get();
+        log.info("Delivering event_id={} to tenant_id={} url={} max_retries={}",
+                savedEvent.getEventId(), tenant.getTenantId(), tenant.getUrl(), tenant.getRetriesNo());
         boolean delivered = deliverWithRetries(savedEvent, tenant);
 
+        log.info("Delivery finished event_id={} payment_id={} result={}",
+                savedEvent.getEventId(),
+                savedEvent.getPaymentId(),
+                delivered ? "SUCCESS" : "FAILURE");
         return new PaymentEventResponse(
                 delivered ? ResponseStatus.SUCCESS : ResponseStatus.FAILURE,
                 Instant.now());
@@ -76,6 +92,8 @@ public class EventService {
         WebhookPayload payload = toPayload(event);
 
         for (int attempt = 1; attempt <= totalAttempts; attempt++) {
+            log.info("Webhook attempt {}/{} event_id={} payment_id={}",
+                    attempt, totalAttempts, event.getEventId(), event.getPaymentId());
             boolean success = webhookClient.invoke(tenant.getUrl(), payload);
             boolean lastAttempt = attempt == totalAttempts;
 
@@ -89,6 +107,8 @@ public class EventService {
             }
 
             recordDelivery(event, attempt, status);
+            log.info("Delivery audit event_id={} retry_no={} status={}",
+                    event.getEventId(), attempt, status);
 
             if (success) {
                 return true;

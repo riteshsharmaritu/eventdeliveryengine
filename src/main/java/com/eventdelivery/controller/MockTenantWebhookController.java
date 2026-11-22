@@ -24,10 +24,8 @@ public class MockTenantWebhookController {
         boolean success = ThreadLocalRandom.current().nextBoolean();
         WebhookResponse response = new WebhookResponse();
         response.setStatus(success ? "success" : "failure");
-        log.info(
-                "Mock tenant webhook for payment_id={} -> {}",
-                payload.getPaymentId(),
-                response.getStatus());
+        log.info("Mock tenant webhook received payment_id={} merchant={} -> {}",
+                payload.getPaymentId(), payload.getMerchant(), response.getStatus());
         return response;
     }
 }

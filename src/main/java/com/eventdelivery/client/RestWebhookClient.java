@@ -22,6 +22,7 @@ public class RestWebhookClient implements WebhookClient {
 
     @Override
     public boolean invoke(String url, WebhookPayload payload) {
+        log.info("Calling webhook url={} payment_id={}", url, payload.getPaymentId());
         try {
             WebhookResponse response = restClient.post()
                     .uri(url)
@@ -30,9 +31,13 @@ public class RestWebhookClient implements WebhookClient {
                     .retrieve()
                     .body(WebhookResponse.class);
 
-            return response != null && response.isSuccess();
+            boolean success = response != null && response.isSuccess();
+            log.info("Webhook response url={} payment_id={} success={}",
+                    url, payload.getPaymentId(), success);
+            return success;
         } catch (RestClientException ex) {
-            log.warn("Webhook invocation failed for url={}: {}", url, ex.getMessage());
+            log.warn("Webhook call failed url={} payment_id={} reason={}",
+                    url, payload.getPaymentId(), ex.getMessage());
             return false;
         }
     }

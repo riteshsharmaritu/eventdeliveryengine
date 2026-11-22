@@ -52,3 +52,8 @@ Build a Spring Boot service where external tenants register webhook URLs to rece
 - events are delivered in real-time succesfully
 - event delivery fails and reties are done and then eventual success
 - event deliverey fails after all retries
+
+
+## NFRs:
+
+- Logging : Add concise logging in different layers so that application flow can be tracked using logs
