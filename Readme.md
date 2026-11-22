@@ -25,7 +25,7 @@ Build a Spring Boot service where external tenants register webhook URLs to rece
 - Store following tables in h2 in-memory db
     - events : event_id, payment_id (idempotency key), amount, date, invoice_id, merchant, event_type
     - event_deliveries : event_id, retry_no, delivery_status, date_added
-    - tenants : tenant_id, url, merchant, date_added
+    - tenants : tenant_id, url, retries_no, merchant, date_added
 - event_type = FULLY_PAID, PAYMENT_FAILED, PARTIALLY_PAID
 - delivery_status = delivered, retrying, failed
 
